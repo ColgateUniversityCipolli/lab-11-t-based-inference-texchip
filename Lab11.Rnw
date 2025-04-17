@@ -40,7 +40,21 @@ of singing, averaged across development.
 conduct a power analysis. How many observations would the researchers 
 need to detect a moderate-to-large effect ($d=0.65$) when using 
 $\alpha=0.05$ and default power (0.80) for a two-sided one sample 
-$t$ test.
+$t$ test?
+
+<<size="scriptsize", warning=F, message=F>>=
+library(pwr)
+set.seed(5656)
+
+(pwr.t.test(d = 0.65, 
+           power = 0.80,
+           sig.level = 0.05,
+           alternative = "two.sided",
+           type = "one.sample"))
+@
+
+Since $n = 20.58039$, at least 21 observations are needed to detect a moderate-to-large effect.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % COLLECT DATA
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,6 +64,21 @@ do to collect the data for Figure 2(g). Note that you only need the
 \texttt{closer\_vals} and \texttt{further\_vals}. Ensure to 
 \texttt{mutate()} the data to get a difference 
 (e.g., \texttt{closer\_vals - further\_vals}).
+
+<<size="scriptsize", warning=F, message=F>>=
+library(tidyverse)
+
+farther <- read_csv("farther.csv",col_names = F)
+closer <- read_csv("closer.csv",col_names = F)
+
+fig.2g.data <- tibble(g.Farther_vals = farther[[1]],
+                      g.Closer_vals = closer[[1]]) |>
+  mutate(difference = g.Closer_vals - g.Farther_vals)
+#view(fig.2g.data)
+@
+
+To collect the data for Figure 2(g), the g.Farther\_vals and g.Closer\_vals columns were downloaded, converted to csv files, and merged into a tibble. Their difference was then calculated and mutated as a third column.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUMMARIZE DATA
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -58,13 +87,59 @@ do to collect the data for Figure 2(g). Note that you only need the
   \item Summarize the further data. Do the data suggest that
    dopamine in the brains of young zebra finches decreases when
    they sing further away?
+
+<<size="scriptsize", warning=F, message=F>>=   
+library(e1071)
+
+farther.summary <- fig.2g.data |>
+  summarize(mean       = mean(g.Farther_vals),
+            sd         = sd(g.Farther_vals),
+            median     = median(g.Farther_vals),
+            IQR        = IQR(g.Farther_vals),
+            skewness   = skewness(g.Farther_vals),
+            exkurtosis = kurtosis(g.Farther_vals))
+
+(farther.summary)
+@
+Since the mean is less than zero, the data suggest that on average, dopamine in the brains of young zebra finches decreases when they sing further away.
+
    \item Summarize the closer data. Do the data suggest that
    dopamine in the brains of young zebra finches increases when
    they sing closer to their adult song?
+
+<<size="scriptsize", warning=F, message=F>>=    
+closer.summary <- fig.2g.data |>
+  summarize(mean       = mean(g.Closer_vals),
+            sd         = sd(g.Closer_vals),
+            median     = median(g.Closer_vals),
+            IQR        = IQR(g.Closer_vals),
+            skewness   = skewness(g.Closer_vals),
+            exkurtosis = kurtosis(g.Closer_vals))
+
+(closer.summary)
+@
+Since the mean is greater than zero, the data suggest that on average, dopamine in the brains of young zebra finches increases when they sing closer to their adult song.
+
   \item Summarize the paired differences. Do the data suggest
   that there is a difference between dopamine in the brains of
   young zebra finches when they sing further away compared to 
   closer to their adult song?
+
+<<size="scriptsize", warning=F, message=F>>= 
+difference.summary <- fig.2g.data |>
+  summarize(mean       = mean(difference),
+            sd         = sd(difference),
+            median     = median(difference),
+            IQR        = IQR(difference),
+            skewness   = skewness(difference),
+            exkurtosis = kurtosis(difference))
+
+(difference.summary)
+@
+Since the mean is significantly far from zero, it appears that there is a distinct difference between dopamine in the brains of
+young zebra finches when they sing further away compared to 
+closer to their adult song.
+
   \item \textbf{Optional Challenge:} Can you reproduce Figure 2(g)?
   Note that the you can use \texttt{geom\_errorbar()} to plot
   the range created by adding the mean $\pm$ one standard deviation.
@@ -79,8 +154,64 @@ like: ($t=23.99$, $p<0.0001$; $g=1.34$; 95\% CI: 4.43, 4.60).\\
 correction of their $p$-values. I'm waiting to hear back from them via email!
 \begin{enumerate}
   \item ``The close responses differed significantly from 0 ($p=1.63 \times 10^{-8}$).''
+  
+<<size="scriptsize", warning=F, message=F>>= 
+library(effectsize)
+
+# a) Closer
+
+mu0 <- 0
+x <- fig.2g.data$g.Closer_vals
+xbar <- mean(x)
+s <- sd(x)
+n <- length(x)
+(t.stat.a <- (xbar - mu0)/(s/sqrt(n)))
+(p.val <- 2*pt(q=-abs(t.stat.a), df = n-1))
+t.test(x=x, mu = mu0, alternative = "greater")
+(hedges_g(x = x, mu = mu0, alternative = "greater"))
+interpret_hedges_g(1.61)
+t.test(x=x, mu = mu0, alternative = "two.sided")
+@
+
+The close responses differed significantly from 0 ($t=8.3024$, $p=1.626 \times 10^{-08}$; $g=1.61$; 95\% CI: 0.1173875, 0.1950586).
+
   \item ``The far responses differed significantly from 0 ($p=5.17 \times 10^{-8}$).''
+  
+<<size="scriptsize", warning=F, message=F>>= 
+
+# b) Farther
+
+mu0 <- 0
+x <- fig.2g.data$g.Farther_vals
+xbar <- mean(x)
+s <- sd(x)
+n <- length(x)
+(t.stat.b <- (xbar - mu0)/(s/sqrt(n)))
+(p.val <- 2*pt(q=-abs(t.stat.b), df = n-1))
+t.test(x=x, mu = mu0, alternative = "less")
+(hedges_g(x = x, mu = mu0, alternative = "less"))
+interpret_hedges_g(-1.51)
+t.test(x=x, mu = mu0, alternative = "two.sided")
+@
+The far responses differed significantly from 0 ($t=-7.778$, $p=5.175 \times 10^{-08}$; $g=-1.51$; 95\% CI: -0.2565176, -0.1489313).
+
   \item ``The difference between populations was significant ($p=1.04 \times10^{-8}$).''
+<<size="scriptsize", warning=F, message=F>>= 
+# c) Difference
+
+mu0 <- 0
+x <- fig.2g.data$difference
+xbar <- mean(x)
+s <- sd(x)
+n <- length(x)
+(t.stat.c <- (xbar - mu0)/(s/sqrt(n)))
+(p.val <- 2*pt(q=-abs(t.stat.c), df = n-1))
+t.test(x=x, mu = mu0, alternative = "two.sided")
+(hedges_g(x = x, mu = mu0, alternative = "two.sided"))
+interpret_hedges_g(1.65)
+@
+The difference between populations was significant ($t=8.5109$, $p=1.037 \times 10^{-08}$; $g=1.65$; 95\% CI: 0.2719028 0.4459921).
+
 \end{enumerate}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CONDUCT THE TESTS
@@ -89,8 +220,199 @@ correction of their $p$-values. I'm waiting to hear back from them via email!
 hypothesis testing plots for each part of the previous question.
 \begin{enumerate}
   \item Question 4, part(a).
+<<size="scriptsize", warning=F, message=F>>= 
+# a) Closer
+
+mu0 <- 0
+x <- fig.2g.data$g.Closer_vals
+xbar <- mean(x)
+s <- sd(x)
+n <- length(x)
+
+ggdat.t <- tibble(t=seq(-5,5,length.out=1000))|>
+  mutate(pdf.null = dt(t, df=n-1))
+# For plotting the observed point
+ggdat.obs <- tibble(t = t.stat.a, 
+                    y = 0) # to plot on x-axis
+
+# Resampling to approximate the sampling distribution 
+# on the data
+R <- 1000
+resamples <- tibble(t=numeric(R))
+for(i in 1:R){
+  curr.sample <- sample(x=x,
+                        size=n,
+                        replace=T)
+  resamples$t[i] = (mean(curr.sample)-mu0)/(sd(curr.sample)/sqrt(n))
+}
+
+t.breaks <- c(-5, 0, 
+              qt(0.95, df = n-1), 14,  # rejection region (right)
+              t.stat.a)                  # t-statistic observed
+xbar.breaks <- t.breaks * s/(sqrt(n)) + mu0
+
+# Create Plot
+ggplot() +
+  # null distribution
+  geom_line(data=ggdat.t, 
+            aes(x=t, y=pdf.null))+
+  geom_hline(yintercept=0)+
+  # rejection region
+  geom_ribbon(data=subset(ggdat.t, t>=qt(0.95, df=n-1)), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="grey", alpha=0.5)+
+  # plot p-value (not visible)
+  geom_ribbon(data=subset(ggdat.t, t>=t.stat.a), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="white", alpha=0.25)+
+  # plot observation point
+  geom_point(data=ggdat.obs, aes(x=t, y=y), color="red")+
+  # Resampling Distribution
+  stat_density(data=resamples, 
+               aes(x=t),
+               geom="line", color="blue")+
+  # clean up aesthetics
+  theme_bw()+
+  scale_x_continuous("t",
+                     breaks = round(t.breaks,2),
+                     sec.axis = sec_axis(~.,
+                                         name = bquote(bar(x)),
+                                         breaks = t.breaks,
+                                         labels = round(xbar.breaks,2))) +
+  ylab("Density")+
+  ggtitle("T Test for Closer Values Compared to Null T Distribution")
+@ 
   \item Question 4, part(b).
+<<size="scriptsize", warning=F, message=F>>= 
+# b) Farther
+
+mu0 <- 0
+x <- fig.2g.data$g.Farther_vals
+xbar <- mean(x)
+s <- sd(x)
+n <- length(x)
+
+ggdat.t <- tibble(t=seq(-5,5,length.out=1000))|>
+  mutate(pdf.null = dt(t, df=n-1))
+# For plotting the observed point
+ggdat.obs <- tibble(t = t.stat.b, 
+                    y = 0) # to plot on x-axis
+
+# Resampling to approximate the sampling distribution 
+# on the data
+R <- 1000
+resamples <- tibble(t=numeric(R))
+for(i in 1:R){
+  curr.sample <- sample(x=x,
+                        size=n,
+                        replace=T)
+  resamples$t[i] = (mean(curr.sample)-mu0)/(sd(curr.sample)/sqrt(n))
+}
+
+t.breaks <- c(-14, qt(0.05, df = n-1), # rejection region (left)
+              0, 5,
+              t.stat.b)                  # t-statistic observed
+xbar.breaks <- t.breaks * s/(sqrt(n)) + mu0
+
+# Create Plot
+ggplot() +
+  # null distribution
+  geom_line(data=ggdat.t, 
+            aes(x=t, y=pdf.null))+
+  geom_hline(yintercept=0)+
+  # rejection region
+  geom_ribbon(data=subset(ggdat.t, t<=qt(0.05, df=n-1)), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="grey", alpha=0.5)+
+  # plot p-value (not visible)
+  geom_ribbon(data=subset(ggdat.t, t>=t.stat.b), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="white", alpha=0.25)+
+  # plot observation point
+  geom_point(data=ggdat.obs, aes(x=t, y=y), color="red")+
+  # Resampling Distribution
+  stat_density(data=resamples, 
+               aes(x=t),
+               geom="line", color="blue")+
+  # clean up aesthetics
+  theme_bw()+
+  scale_x_continuous("t",
+                     breaks = round(t.breaks,2),
+                     sec.axis = sec_axis(~.,
+                                         name = bquote(bar(x)),
+                                         breaks = t.breaks,
+                                         labels = round(xbar.breaks,2))) +
+  ylab("Density")+
+  ggtitle("T Test for Farther Values Compared to Null T Distribution")
+@
   \item Question 4, part(c).
+<<size="scriptsize", warning=F, message=F>>= 
+# c) Difference
+
+mu0 <- 0
+x <- fig.2g.data$difference
+xbar <- mean(x)
+s <- sd(x)
+n <- length(x)
+
+ggdat.t <- tibble(t=seq(-5,5,length.out=1000))|>
+  mutate(pdf.null = dt(t, df=n-1))
+# For plotting the observed point
+ggdat.obs <- tibble(t = t.stat.c, 
+                    y = 0) # to plot on x-axis
+
+# Resampling to approximate the sampling distribution 
+# on the data
+R <- 1000
+resamples <- tibble(t=numeric(R))
+for(i in 1:R){
+  curr.sample <- sample(x=x,
+                        size=n,
+                        replace=T)
+  resamples$t[i] = (mean(curr.sample)-mu0)/(sd(curr.sample)/sqrt(n))
+}
+
+t.breaks <- c(-5, qt(0.025, df = n-1), # rejection region (left)
+              0, 
+              qt(0.975, df = n-1), 14,  # rejection region (right)
+              t.stat.c)                  # t-statistic observed
+xbar.breaks <- t.breaks * s/(sqrt(n)) + mu0
+
+# Create Plot
+ggplot() +
+  # null distribution
+  geom_line(data=ggdat.t, 
+            aes(x=t, y=pdf.null))+
+  geom_hline(yintercept=0)+
+  # rejection region
+  geom_ribbon(data=subset(ggdat.t, t<=qt(0.025, df=n-1)), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="grey", alpha=0.5)+
+  geom_ribbon(data=subset(ggdat.t, t>=qt(0.975, df=n-1)), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="grey", alpha=0.5)+
+  # plot p-value (not visible)
+  geom_ribbon(data=subset(ggdat.t, t>=t.stat.c), 
+              aes(x=t, ymin=0, ymax=pdf.null),
+              fill="white", alpha=0.25)+
+  # plot observation point
+  geom_point(data=ggdat.obs, aes(x=t, y=y), color="red")+
+  # Resampling Distribution
+  stat_density(data=resamples, 
+               aes(x=t),
+               geom="line", color="blue")+
+  # clean up aesthetics
+  theme_bw()+
+  scale_x_continuous("t",
+                     breaks = round(t.breaks,2),
+                     sec.axis = sec_axis(~.,
+                                         name = bquote(bar(x)),
+                                         breaks = t.breaks,
+                                         labels = round(xbar.breaks,2))) + 
+  ylab("Density")+
+  ggtitle("T Test for Difference Compared to Null T Distribution")
+@
+
 \end{enumerate}
 \end{enumerate}
 

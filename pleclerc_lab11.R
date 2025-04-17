@@ -58,7 +58,7 @@ closer.summary <- fig.2g.data |>
 
 (closer.summary)
 
-# a) paired differences
+# c) paired differences
 
 difference.summary <- fig.2g.data |>
   summarize(mean       = mean(difference),
@@ -86,9 +86,9 @@ n <- length(x)
 (t.stat.a <- (xbar - mu0)/(s/sqrt(n)))
 (p.val <- 2*pt(q=-abs(t.stat.a), df = n-1))
 t.test(x=x, mu = mu0, alternative = "greater")
-(hedges_g(x = x, mu = mu0, alternative = "two.sided"))
+(hedges_g(x = x, mu = mu0, alternative = "greater"))
 interpret_hedges_g(1.61)
-
+t.test(x=x, mu = mu0, alternative = "two.sided")
 
 # b) Farther
 
@@ -100,8 +100,9 @@ n <- length(x)
 (t.stat.b <- (xbar - mu0)/(s/sqrt(n)))
 (p.val <- 2*pt(q=-abs(t.stat.b), df = n-1))
 t.test(x=x, mu = mu0, alternative = "less")
-(hedges_g(x = x, mu = mu0, alternative = "two.sided"))
+(hedges_g(x = x, mu = mu0, alternative = "less"))
 interpret_hedges_g(-1.51)
+t.test(x=x, mu = mu0, alternative = "two.sided")
 
 # c) Difference
 
@@ -161,9 +162,9 @@ ggplot() +
               aes(x=t, ymin=0, ymax=pdf.null),
               fill="grey", alpha=0.5)+
   # plot p-value (not visible)
-  geom_ribbon(data=subset(ggdat.t, t>=t.stat), 
+  geom_ribbon(data=subset(ggdat.t, t>=t.stat.a), 
               aes(x=t, ymin=0, ymax=pdf.null),
-              fill="reg", alpha=0.25)+
+              fill="white", alpha=0.25)+
   # plot observation point
   geom_point(data=ggdat.obs, aes(x=t, y=y), color="red")+
   # Resampling Distribution
@@ -222,9 +223,9 @@ ggplot() +
               aes(x=t, ymin=0, ymax=pdf.null),
               fill="grey", alpha=0.5)+
   # plot p-value (not visible)
-  geom_ribbon(data=subset(ggdat.t, t>=t.stat), 
+  geom_ribbon(data=subset(ggdat.t, t>=t.stat.b), 
               aes(x=t, ymin=0, ymax=pdf.null),
-              fill="reg", alpha=0.25)+
+              fill="white", alpha=0.25)+
   # plot observation point
   geom_point(data=ggdat.obs, aes(x=t, y=y), color="red")+
   # Resampling Distribution
@@ -287,9 +288,9 @@ ggplot() +
               aes(x=t, ymin=0, ymax=pdf.null),
               fill="grey", alpha=0.5)+
   # plot p-value (not visible)
-  geom_ribbon(data=subset(ggdat.t, t>=t.stat), 
+  geom_ribbon(data=subset(ggdat.t, t>=t.stat.c), 
               aes(x=t, ymin=0, ymax=pdf.null),
-              fill="reg", alpha=0.25)+
+              fill="white", alpha=0.25)+
   # plot observation point
   geom_point(data=ggdat.obs, aes(x=t, y=y), color="red")+
   # Resampling Distribution
